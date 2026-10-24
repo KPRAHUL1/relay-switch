@@ -1,0 +1,26 @@
+[project]
+name = "relay-conductor"
+version = "1.0.0"
+description = "A Switch-native conductor: the deterministic half of a work desk"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28,<1",
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.34,<1",
+    "pydantic>=2,<3",
+    "pydantic-settings>=2.14,<3",
+]
+
+[project.scripts]
+relay = "relay.__main__:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["relay"]
+
+[tool.ruff]
+line-length = 90
+target-version = "py312"

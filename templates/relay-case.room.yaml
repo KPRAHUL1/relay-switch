@@ -1,0 +1,100 @@
+# One room, for one case. Relay instantiates this itself.
+#
+# This is not a template a person runs. When a case is accepted, the conductor
+# calls `create_room_from_yaml` with this document and the case's own values,
+# then links the new room back to the desk with the case id as the label.
+#
+# That is the moment the workflow stops being a bot in a channel. The case gets
+# a room with the request already in its instructions, the worker agent in it,
+# a review gate as a role, and a pointer home — and none of that exists without
+# Switch underneath it.
+params:
+  case_id:
+    type: string
+    description: The case this room exists for
+  title:
+    type: string
+    description: What was asked for, in one line
+  priority:
+    type: string
+    description: p1, p2 or p3
+    default: p2
+  requester:
+    type: string
+    description: Who asked
+    default: unknown
+  owner:
+    type: string
+    description: Who is working it
+    default: unassigned
+  resolve_minutes:
+    type: string
+    description: The resolve promise for this priority, in minutes
+    default: "480"
+  worker_agent:
+    type: agent
+    description: The agent that works the case
+    default: relay-worker
+
+room:
+  name: "case {case_id}"
+  description: "{case_id} — {title}"
+  channel_type: channel_private
+  agents: ["{worker_agent}", "relay"]
+  # No `users:` here, deliberately, and no creator placeholder anywhere in this
+  # file -- not even in a comment. The server looks for that placeholder as a
+  # literal string in the template *text* before interpolating anything, and
+  # refuses the whole provision when the creator has no linked account on the
+  # bridge. Writing it in a comment is enough to trip that.
+  #
+  # It would be the wrong people anyway: it resolves to the conductor's owner,
+  # who is not the person who asked. The requester and whoever picks the case
+  # up are added by the conductor once the room exists, where a name that does
+  # not resolve costs a warning instead of the whole room.
+  instructions: |
+    This room exists for one case and closes with it.
+
+    **{case_id}** — {title}
+
+    - Priority {priority}, promised resolved within {resolve_minutes} minutes
+      of being opened.
+    - Asked for by {requester}.
+    - Being worked by {owner}.
+
+    `relay` is the conductor. It holds this case's state and clocks, and it
+    will page whoever holds the `duty` role if this room goes quiet or the
+    promise above is about to break.
+
+    The grammar, for people and agents alike:
+
+    - `@relay start {case_id}` — work has begun
+    - `@relay note {case_id} <text>` — add to the trail
+    - `@relay info {case_id} <question>` — blocked on the requester; clock pauses
+    - `@relay review {case_id}` — hand to whoever is on duty
+    - `@relay done {case_id} <outcome>` — close it (duty role only, by convention)
+
+    When this case closes, Relay writes the full trail into this room as a
+    document, so what was decided stays where it was decided.
+
+  roles:
+    - name: duty
+      exclusive: true
+      instructions: |
+        You are the review gate for this case. It reaches you at
+        `awaiting_review` and nothing closes without you.
+
+        Check the work against what was actually asked for at the top of this
+        room, not against what the worker says it did. Then either:
+
+        - `@relay done {case_id} <what changed, in one line>`, or
+        - `@relay changes {case_id} <the one thing that is wrong>`
+
+        Relay pages this role on an SLA breach or a stall, so if you hold it,
+        you are the one who hears about it.
+
+kickoff: |
+  @{worker_agent} this room is case {case_id}: {title}
+
+  Read the room instructions, say in one line what you are about to do, then
+  `@relay start {case_id}` and get going. `@relay review {case_id}` when a
+  person needs to check it.

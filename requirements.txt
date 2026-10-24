@@ -1,0 +1,10 @@
+# Relay's conductor. Nothing here is Switch-specific: the agent protocol is
+# spoken over plain HTTP and SSE with httpx, and there is no Switch SDK.
+httpx>=0.28,<1
+fastapi>=0.115,<1
+uvicorn>=0.34,<1
+pydantic>=2,<3
+pydantic-settings>=2.14,<3
+
+# Tests only.
+pytest>=8,<9

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relay — the desk</title>
+<meta name="description" content="Live view of a Relay work desk: every open case, who owns it, and how long it has left.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="board.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="brand">
+    <span class="wordmark">Relay</span>
+    <span class="rule" aria-hidden="true"></span>
+    <span class="desk" id="desk-name">connecting…</span>
+  </div>
+
+  <div class="masthead-right">
+    <button class="link" id="filter-btn" type="button" aria-label="Filter cases">
+      <input id="filter" type="search" placeholder="Filter  /" autocomplete="off" spellcheck="false">
+    </button>
+    <span class="pill" id="link-state" data-state="down">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="link-label">offline</span>
+    </span>
+    <button class="link theme" id="theme" type="button" aria-label="Toggle dark mode">
+      <span data-light>Dark</span><span data-dark>Light</span>
+    </button>
+  </div>
+</header>
+
+<section class="ledger" aria-label="Desk summary">
+  <article class="stat">
+    <h2>Open</h2>
+    <p class="figure" id="s-open">—</p>
+    <p class="foot" id="s-open-foot">cases on the desk</p>
+  </article>
+  <article class="stat" data-tone="bad">
+    <h2>Over SLA</h2>
+    <p class="figure" id="s-breached">—</p>
+    <p class="foot">past a promise</p>
+  </article>
+  <article class="stat" data-tone="warn">
+    <h2>At risk</h2>
+    <p class="figure" id="s-risk">—</p>
+    <p class="foot">inside the last fifth</p>
+  </article>
+  <article class="stat">
+    <h2>Closed</h2>
+    <p class="figure" id="s-closed">—</p>
+    <p class="foot" id="s-median">—</p>
+  </article>
+  <article class="stat wide">
+    <h2>How this works</h2>
+    <p class="prose">
+      Every case here was filed, moved and closed by someone typing in chat.
+      Relay holds the record and the clocks; it has <em>no</em> button that
+      moves a case, because a decision taken here would be a decision nobody
+      in the room could see.
+    </p>
+  </article>
+</section>
+
+<main class="pipeline" id="pipeline" aria-live="polite">
+  <div class="booting">Waiting for the conductor…</div>
+</main>
+
+<aside class="drawer" id="drawer" hidden aria-label="Case detail">
+  <button class="drawer-close" id="drawer-close" type="button" aria-label="Close">Close</button>
+  <div id="drawer-body"></div>
+</aside>
+<div class="scrim" id="scrim" hidden></div>
+
+<footer class="footer">
+  <span>Relay runs on <a href="https://github.com/sandbox-quantum/switch">Switch</a>, speaking the agent protocol directly.</span>
+  <span class="mono" id="stamp">—</span>
+</footer>
+
+<script type="module" src="board.js"></script>
+</body>
+</html>

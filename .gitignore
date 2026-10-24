@@ -1,0 +1,13 @@
+.env
+.relay/
+.relay-demo/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+.DS_Store

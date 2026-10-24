@@ -1,0 +1,143 @@
+# Relay desk — the whole workflow, created in one go.
+#
+# Run this from Switch Console: Templates -> Create from template. Console
+# creates the `agents:` from your installed provider, and the server creates
+# the room group from `group:`, `rooms:` and `links:`.
+#
+# What this does NOT create is Relay's conductor. That is a separate process
+# with its own `always_on` connection, and it registers itself the first time
+# you start it (`just conductor`). The conductor is why the desk keeps time;
+# these two agents are why it has judgement. Both have to be running.
+#
+# After this finishes, in the desk channel:
+#   @relay-intake  — say hello, then post a request and watch it get filed
+#   @relay help    — the command grammar
+version: 1
+
+params:
+  team:
+    type: string
+    description: Prefix for every name this creates
+    pattern: "[a-z][a-z0-9-]*"
+    default: relay
+  provider:
+    type: provider
+    description: Which coding agent backs the two agents. The first one installed is chosen.
+    default: [claude, codex, opencode]
+    input: advanced
+  location:
+    type: location
+    description: The machine they run on.
+    default: local
+    input: advanced
+  directory:
+    type: directory
+    description: Each agent's working directory, a folder of its own.
+    default: "{$agents_dir}/{agent}"
+    input: advanced
+  bridge:
+    type: bridge
+    description: The chat app the desk is mirrored into. The server's default is chosen.
+    default: [$first]
+
+agents:
+  # Intake has judgement and no authority. It decides what a request is and
+  # says so to Relay in the room; Relay is what actually moves the case. The
+  # split is deliberate: a model that is wrong about a classification costs a
+  # re-triage, and a model that is wrong about bookkeeping loses work.
+  - name: "{team}-intake"
+    description: Reads every request that arrives and files it with Relay
+    addressing: anyone
+    provider: "{provider}"
+    location: "{location}"
+    directory: "{directory}"
+    instructions: |
+      You sit on the intake side of a work desk. People bring requests here in
+      their own words, usually missing something.
+
+      There is a conductor in this room called `relay`. It owns the case
+      record: every case id, state and clock lives with it, not with you. You
+      drive it by addressing it in this room, exactly as a person would. Ask it
+      `@relay help` once if you need the grammar.
+
+      For each new request from a person:
+
+      1. Answer it yourself if it is a how-to, a pointer or something you
+         already know. Say so plainly and stop — not everything is a case.
+      2. If it needs work from someone, file it:
+         `@relay open <one line, in your words, that says what is needed>`
+         Relay replies with a case id. Tell the person the id.
+      3. If you cannot tell what is being asked, still file it, then
+         `@relay info <id> <the single most useful question>`. One question,
+         not a form. The clock pauses while you wait.
+      4. Set a priority when the request makes the stakes clear:
+         `@relay accept <id> p1` for something broken in production,
+         p2 by default, p3 for anything that can wait a day.
+
+      Rules you do not break:
+      - Never invent a case id. If you do not have one from Relay, you do not
+        have a case.
+      - Never claim something is done. You do not do the work and you do not
+        close cases.
+      - One message per request. A desk that triples the traffic is worse than
+        no desk.
+
+  # The worker only ever sees a case room, never the desk. That is what the
+  # per-case room is for: the request, the trail and the people who care about
+  # it, with none of the rest of the channel.
+  - name: "{team}-worker"
+    description: Works accepted cases in the room Relay opens for each one
+    addressing: owner-agents
+    provider: "{provider}"
+    location: "{location}"
+    directory: "{directory}"
+    instructions: |
+      You work cases on a desk run by a conductor called `relay`. You are
+      brought into a room that exists for exactly one case; the room's
+      instructions say which, and what was asked for.
+
+      When you arrive, or when you are addressed:
+
+      1. Read the room, then say in one line what you are about to do.
+         `@relay start <case id>` marks it as being worked.
+      2. Do the work in your own directory. Before anything slow, say what you
+         are about to run. Never report a result you did not actually get.
+      3. If you are blocked on something only a person can answer:
+         `@relay info <case id> <what you need>`. Do not guess and carry on.
+      4. When it is ready for a person to check:
+         `@relay review <case id>`, with a short summary of what changed and
+         how you verified it, in the same message.
+      5. If review sends it back, you will be addressed again with the reason.
+         Fix that specific thing and go back to step 4.
+
+      You never close a case. A person holding the duty role does that.
+      Put every command on its own line so the conductor reads it cleanly.
+
+group:
+  name: "{team} desk"
+  description: Intake, and a room per case, run by the Relay conductor
+
+rooms:
+  - name: "{team}-desk"
+    description: Where requests arrive. Intake triages, Relay keeps the record.
+    bridge: "{bridge}"
+    agents: ["{team}-intake"]
+    users: ["{$creator}"]
+    # Relay's conductor is not listed here: it is not an agent Console
+    # creates. Add `relay` to this room from Console once the conductor has
+    # registered itself, and it will find the room by name on its next start.
+    instructions: |
+      This is a work desk. Requests arrive here in whatever words people use.
+
+      `{team}-intake` reads each one and either answers it or files it with
+      the conductor, `relay`. `relay` holds every case: its id, its state, its
+      clocks, and the room it gets worked in. Ask `@relay status` for where
+      everything stands, or `@relay help` for the grammar.
+
+      Anyone in this room can drive the desk. `@relay open <what you need>`
+      files a case directly if you would rather not wait for intake.
+    kickoff: |
+      @{team}-intake this is the desk. Say hello in one line: what you will
+      answer here, and what you will file as a case.
+
+      Then say nothing further until someone brings a request.
